@@ -238,133 +238,123 @@
     var totalQuestions = 10;
 
     function fetchQuestions() {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', 'https://opentdb.com/api.php?amount=10&difficulty=medium&type=multiple', true);
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          var response = JSON.parse(xhr.responseText);
-          questions = response.results.map(function (q) {
-            return {
-              question: decodeHtml(q.question),
-              options: q.incorrect_answers.concat([q.correct_answer]).sort(function () { return Math.random() - 0.5; }),
-              answer: q.correct_answer
-            };
-          });
-          loadQuestion();
-        }
-      };
-      xhr.send();
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'https://opentdb.com/api.php?amount=10&difficulty=medium&type=multiple', true);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                var response = JSON.parse(xhr.responseText);
+                questions = response.results.map(function (q) {
+                    return {
+                        question: decodeHtml(q.question),
+                        options: q.incorrect_answers.concat([q.correct_answer]).sort(function () { return Math.random() - 0.5; }),
+                        answer: q.correct_answer
+                    };
+                });
+                loadQuestion();
+            }
+        };
+        xhr.send();
     }
 
     function decodeHtml(html) {
-      var txt = document.createElement("textarea");
-      txt.innerHTML = html;
-      return txt.value;
+        var txt = document.createElement("textarea");
+        txt.innerHTML = html;
+        return txt.value;
     }
 
     function loadQuestion() {
-      clearInterval(timer);
-      timeLeft = 10;
-      updateTimer();
+        clearInterval(timer);
+        timeLeft = 10;
+        updateTimer();
 
-      if (currentQuestionIndex < totalQuestions) {
-        var questionData = questions[currentQuestionIndex];
-        document.getElementById("question-number").textContent = "Question " + (currentQuestionIndex + 1) + " / " + totalQuestions;
-        document.getElementById("question").innerHTML = questionData.question;
+        if (currentQuestionIndex < totalQuestions) {
+            var questionData = questions[currentQuestionIndex];
+            document.getElementById("question-number").textContent = "Question " + (currentQuestionIndex + 1) + " / " + totalQuestions;
+            document.getElementById("question").innerHTML = questionData.question;
 
-        var options = document.querySelectorAll(".options button");
-        for (var i = 0; i < options.length; i++) {
-          options[i].textContent = decodeHtml(questionData.options[i]);
-          options[i].style.backgroundColor = "#f9f9f9";
-          options[i].disabled = false;
+            var options = document.querySelectorAll(".options button");
+            for (var i = 0; i < options.length; i++) {
+                options[i].textContent = decodeHtml(questionData.options[i]);
+                options[i].style.backgroundColor = "#f9f9f9";
+                options[i].disabled = false;
+            }
+
+            var nextButton = document.querySelector(".next-button");
+            nextButton.classList.remove("enabled");
+            nextButton.disabled = true;
+
+            selectedAnswer = null;
+
+            timer = setInterval(function () {
+                timeLeft--;
+                updateTimer();
+                if (timeLeft === 0) {
+                    clearInterval(timer);
+                    skipQuestion();
+                }
+            }, 1000);
+        } else {
+            showScore();
         }
-
-        var nextButton = document.querySelector(".next-button");
-        nextButton.classList.remove("enabled");
-        nextButton.disabled = true;
-
-        selectedAnswer = null;
-
-        timer = setInterval(function () {
-          timeLeft--;
-          updateTimer();
-          if (timeLeft === 0) {
-            clearInterval(timer);
-            skipQuestion();
-          }
-        }, 1000);
-      } else {
-        showScore();
-      }
     }
 
     function updateTimer() {
-      document.getElementById("timer").textContent = "Time Left: " + timeLeft + "s";
+        document.getElementById("timer").textContent = "Time Left: " + timeLeft + "s";
     }
 
     function updateProgressBar() {
-      var progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
-      document.getElementById("progress-bar").style.width = progress + "%";
+        var progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
+        document.getElementById("progress-bar").style.width = progress + "%";
     }
 
     function selectAnswer(index) {
-      var options = document.querySelectorAll(".options button");
-      selectedAnswer = options[index].textContent;
-      for (var i = 0; i < options.length; i++) {
-        options[i].style.backgroundColor = i === index ? "#d1e7fd" : "#f9f9f9";
-      }
+        var options = document.querySelectorAll(".options button");
+        selectedAnswer = options[index].textContent;
+        for (var i = 0; i < options.length; i++) {
+            options[i].style.backgroundColor = i === index ? "#d1e7fd" : "#f9f9f9";
+        }
 
-      var nextButton = document.querySelector(".next-button");
-      nextButton.classList.add("enabled");
-      nextButton.disabled = false;
+        var nextButton = document.querySelector(".next-button");
+        nextButton.classList.add("enabled");
+        nextButton.disabled = false;
     }
 
     function nextQuestion() {
-      if (!selectedAnswer) return;
+        if (!selectedAnswer) return;
 
-      checkAnswer();
-      currentQuestionIndex++;
-      updateProgressBar();
-      loadQuestion();
+        checkAnswer();
+        currentQuestionIndex++;
+        updateProgressBar();
+        loadQuestion();
     }
 
     function skipQuestion() {
-      unanswered++;
-      currentQuestionIndex++;
-      updateProgressBar();
-      loadQuestion();
+        unanswered++;
+        currentQuestionIndex++;
+        updateProgressBar();
+        loadQuestion();
     }
 
     function checkAnswer() {
-      if (selectedAnswer === questions[currentQuestionIndex].answer) {
-        score++;
-        correctAnswers++;
-      } else {
-        wrongAnswers++;
-      }
+        if (selectedAnswer === questions[currentQuestionIndex].answer) {
+            score++;
+            correctAnswers++;
+        } else {
+            wrongAnswers++;
+        }
     }
 
     function showScore() {
-      document.getElementById("timer").style.display = "none"; // Hide the timer in the result screen
-      document.querySelector(".question-container").innerHTML =
-        '<p class="score">Correct: ' + correctAnswers + ' | Wrong: ' + wrongAnswers + ' | Skipped: ' + unanswered + '</p>' +
-        '<p class="score">Total Score: ' + score + ' / ' + totalQuestions + '</p>' +
-        '<button class="play-again" onclick="restartQuiz()">Play Again</button>';
-    }
-
-    function restartQuiz() {
-      currentQuestionIndex = 0;
-      score = 0;
-      correctAnswers = 0;
-      wrongAnswers = 0;
-      unanswered = 0;
-      document.getElementById("timer").style.display = "block"; // Show the timer again
-      fetchQuestions();
-      updateProgressBar();
+        document.getElementById("timer").style.display = "none"; // Hide the timer in the result screen
+        document.querySelector(".question-container").innerHTML =
+            '<p class="score">Correct: ' + correctAnswers + ' | Wrong: ' + wrongAnswers + ' | Skipped: ' + unanswered + '</p>' +
+            '<p class="score">Total Score: ' + score + ' / ' + totalQuestions + '</p>' +
+            '<button class="play-again" onclick="location.reload()">Play Again</button>';
     }
 
     fetchQuestions();
-  </script>
+</script>
+
 
 </body>
 
