@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>brainbender</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f3f4f6;
+    }
+
+    .quiz-container {
+      width: 100%;
+      max-width: 400px;
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 5px;
+      font-size: 1.8em;
+      color: #333;
+    }
+
+    .timer {
+      font-size: 1.2em;
+      color: #ff5722;
+      /* margin-top: 10px; */
+    }
+
+    .progress-container {
+      width: 100%;
+      background-color: #e0e0e0;
+      height: 8px;
+      border-radius: 4px;
+      margin: 15px 0;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background-color: #5c8aed;
+      transition: width 0.3s ease;
+    }
+
+    .question-number {
+      font-weight: bold;
+      /* margin-bottom: 10px; */
+    }
+
+    .question {
+      font-weight: bold;
+      padding: 0;
+      margin-top: 50px;
+    }
+
+    .options {
+      list-style: none;
+      padding: 0;
+      margin-top: 50px;
+    }
+
+    .quiz-options{
+      margin-top: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+    }
+
+    .options li {
+      margin: 8px 0;
+    }
+
+    .options button {
+      width: 100%;
+      padding: 10px;
+      font-size: 1em;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .options button:hover {
+      background-color: #ececec;
+    }
+
+    .next-button {
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      font-size: 1em;
+      margin-top: 20px;
+      color: white;
+      background-color: #5c8aed;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .next-button.enabled {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .score {
+      font-size: 1.3em;
+      font-weight: bold;
+      color: #4CAF50;
+      margin-top: 20px;
+    }
+
+    .play-again {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 1em;
+      color: white;
+      background-color: #28a745;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    /* Responsive for Mobile */
+    @media (max-width: 600px) {
+      .quiz-container {
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        border-radius: 0;
+        padding: 20px 15px;
+        box-shadow: none;
+      }
+
+      .quiz-section{
+        height: 80vh;
+      }
+
+      h2 {
+        font-size: 1.5em;
+      }
+
+      .timer {
+        font-size: 1em;
+      }
+
+      .question {
+        font-size: 1em;
+      }
+
+      .options button {
+        font-size: 0.9em;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+
+      .next-button{
+        position: relative;
+        width: 100%;
+        top: 80px;
+      }
+
+      .score{
+        margin-top: 50px;
+      }
+
+      .play-again{
+        margin-top: 50px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="quiz-container">
+    <h2 style="margin-top: 10px;">Brain Bender</h2>
+
+    <!-- quiz section -->
+    <div class="quiz-section">
+
+      <!-- timer and questions -->
+      <div class="quiz-options">
+        <div class="question-number" id="question-number">Question 1 / 10</div>
+        <div class="timer" id="timer">Time Left: 10s</div>
+      </div>
+
+      <!-- progress bar -->
+      <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <div class="question-container">
+
+        <!-- question and multiple choise -->
+        <p class="question" id="question">Loading question...</p>
+        <ul class="options">
+          <li><button onclick="selectAnswer(0)">Option 1</button></li>
+          <li><button onclick="selectAnswer(1)">Option 2</button></li>
+          <li><button onclick="selectAnswer(2)">Option 3</button></li>
+          <li><button onclick="selectAnswer(3)">Option 4</button></li>
+        </ul>
+        <!-- button -->
+        <button class="next-button" onclick="nextQuestion()">Next Question</button>
+        <p class="score" id="score" style="display: none;"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var questions = [];
+    var currentQuestionIndex = 0;
+    var score = 0;
+    var selectedAnswer = null;
+    var correctAnswers = 0;
+    var wrongAnswers = 0;
+    var unanswered = 0;
+    var timer;
+    var timeLeft = 10;
+    var totalQuestions = 10;
+
+    function fetchQuestions() {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', 'https://opentdb.com/api.php?amount=10&difficulty=medium&type=multiple', true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          var response = JSON.parse(xhr.responseText);
+          questions = response.results.map(function (q) {
+            return {
+              question: decodeHtml(q.question),
+              options: q.incorrect_answers.concat([q.correct_answer]).sort(function () { return Math.random() - 0.5; }),
+              answer: q.correct_answer
+            };
+          });
+          loadQuestion();
+        }
+      };
+      xhr.send();
+    }
+
+    function decodeHtml(html) {
+      var txt = document.createElement("textarea");
+      txt.innerHTML = html;
+      return txt.value;
+    }
+
+    function loadQuestion() {
+      clearInterval(timer);
+      timeLeft = 10;
+      updateTimer();
+
+      if (currentQuestionIndex < totalQuestions) {
+        var questionData = questions[currentQuestionIndex];
+        document.getElementById("question-number").textContent = "Question " + (currentQuestionIndex + 1) + " / " + totalQuestions;
+        document.getElementById("question").innerHTML = questionData.question;
+
+        var options = document.querySelectorAll(".options button");
+        for (var i = 0; i < options.length; i++) {
+          options[i].textContent = decodeHtml(questionData.options[i]);
+          options[i].style.backgroundColor = "#f9f9f9";
+          options[i].disabled = false;
+        }
+
+        var nextButton = document.querySelector(".next-button");
+        nextButton.classList.remove("enabled");
+        nextButton.disabled = true;
+
+        selectedAnswer = null;
+
+        timer = setInterval(function () {
+          timeLeft--;
+          updateTimer();
+          if (timeLeft === 0) {
+            clearInterval(timer);
+            skipQuestion();
+          }
+        }, 1000);
+      } else {
+        showScore();
+      }
+    }
+
+    function updateTimer() {
+      document.getElementById("timer").textContent = "Time Left: " + timeLeft + "s";
+    }
+
+    function updateProgressBar() {
+      var progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
+      document.getElementById("progress-bar").style.width = progress + "%";
+    }
+
+    function selectAnswer(index) {
+      var options = document.querySelectorAll(".options button");
+      selectedAnswer = options[index].textContent;
+      for (var i = 0; i < options.length; i++) {
+        options[i].style.backgroundColor = i === index ? "#d1e7fd" : "#f9f9f9";
+      }
+
+      var nextButton = document.querySelector(".next-button");
+      nextButton.classList.add("enabled");
+      nextButton.disabled = false;
+    }
+
+    function nextQuestion() {
+      if (!selectedAnswer) return;
+
+      checkAnswer();
+      currentQuestionIndex++;
+      updateProgressBar();
+      loadQuestion();
+    }
+
+    function skipQuestion() {
+      unanswered++;
+      currentQuestionIndex++;
+      updateProgressBar();
+      loadQuestion();
+    }
+
+    function checkAnswer() {
+      if (selectedAnswer === questions[currentQuestionIndex].answer) {
+        score++;
+        correctAnswers++;
+      } else {
+        wrongAnswers++;
+      }
+    }
+
+    function showScore() {
+      document.getElementById("timer").style.display = "none"; // Hide the timer in the result screen
+      document.querySelector(".question-container").innerHTML =
+        '<p class="score">Correct: ' + correctAnswers + ' | Wrong: ' + wrongAnswers + ' | Skipped: ' + unanswered + '</p>' +
+        '<p class="score">Total Score: ' + score + ' / ' + totalQuestions + '</p>' +
+        '<button class="play-again" onclick="restartQuiz()">Play Again</button>';
+    }
+
+    function restartQuiz() {
+      currentQuestionIndex = 0;
+      score = 0;
+      correctAnswers = 0;
+      wrongAnswers = 0;
+      unanswered = 0;
+      document.getElementById("timer").style.display = "block"; // Show the timer again
+      fetchQuestions();
+      updateProgressBar();
+    }
+
+    fetchQuestions();
+  </script>
+
+</body>
+
+</html>
